@@ -1,0 +1,18 @@
+@startuml
+class Account {
+    print_account_details()
+        _timestamp
+    _account_id
+    _balance
+    __init__()
+}
+class BankingSystemImpl {
+    _find_account()
+    _all_accounts()
+    create_account()
+    deposit()
+    transfer()
+        __init__()
+}
+BankingSystem <|-- BankingSystemImpl
+@enduml
