@@ -162,3 +162,26 @@ class BankingSystemImpl:
 
         return payment_id 
     
+    
+    def get_payment_status(self, timestamp: int, account_id: str, payment: str) -> str | None:
+        account = self._find_account(account_id)
+
+        # check: accounts exists 
+        if account is None:
+            print(f"Timestamp: {timestamp} | Error: Account '{account_id}' not found.")
+            return None
+        
+        # check: payment exists 
+        if payment not in self._payment_ids: 
+            print(f"Timestamp: {timestamp} | Error: Could not find payment with payment ID {payment}")
+            return None 
+
+        # check: payment id / account id mismatches
+        if self._payment_ids[payment] != account_id:
+            print(f"Timestamp: {timestamp} | Error: Payment ID {payment} could not be located for account {account_id}")
+            return None
+
+        # in progress vs complete -> timestamp 
+            # use unique payment ids?
+
+        return None
