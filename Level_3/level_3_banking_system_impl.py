@@ -19,15 +19,17 @@ class BankingSystemImpl:
 
     def __init__(self):
         self._accounts_list = []
-        self._outgoing = {} # dict, track outgoing transfers 
+        self._outgoing = {} # dict, track outgoing transfers + withdrawals 
 
         self._transaction_number = 0 # counter to keep track of transaction number for unique transac id
-        self._payment_ids = {} # track unique payment id's for each account 
+        self._payment_ids = {} # dict(key: payment_id; value: account_id) -> track unique payment id's and corresponding account 
+
+        self._pending_cashback = {} # track pending cash back as dict: {key: payment_id; value: (timestamp, account_id, cashback_amount)}
         
     def _find_account(self, account_id: str): 
         for account in self._accounts_list:
             if account_id == account._account_id:
-                return account
+                return account # type: Account
         return None # if not account found 
     
     # helper function for testing only 
@@ -63,7 +65,6 @@ class BankingSystemImpl:
 
         return account._balance
 
-        
 
     def transfer(self, timestamp: int, source_account_id: str, target_account_id: str, amount: int) -> int | None:
         
@@ -108,8 +109,23 @@ class BankingSystemImpl:
         return [f"{acc_id}({amount})" for acc_id, amount in data]
 
 
-    def _calculate_cash_back(self, amount: int):
-        return math.floor(amount * 0.02)
+    def _calculate_cashback(self, amount: int):
+        return math.floor(amount * 0.02) # round down 
+    
+
+    def _process_cash_back(self, curr_timestamp): 
+        processed = [] 
+        # look thru all pending items 
+        for payment_id, data in self._pending_cashback.items(): # {payment_id : (timestamp, account_id, cashback_amount}
+            if curr_timestamp >= data[0] + 86400000: # waiting period elapsed 
+                account = self._find_account(data[1])
+                account._balance += data[2]
+                print(f"Cashback has been processed for account {account._account_id}")
+                processed.append(payment_id) # mark for deletion 
+
+        for p in processed: 
+            del self._pending_cashback[payment_id] # remove payment from dict once processed 
+
     
     def pay(self, timestamp: int, account_id: str, amount: int) -> str | None:
         account = self._find_account(account_id)
@@ -120,25 +136,29 @@ class BankingSystemImpl:
             return None
         
         # check: funds are sufficient 
-        if amount >= account._balance:
+        if amount > account._balance:
             print(f"Timestamp: {timestamp} | Error: Insufficient funds, withdrawal {amount} exceeds account current balance.")
             return None
         
         # withdraw given amount from specified account 
         account._balance -= amount 
 
-        # successful withdrawals return string with unique id 
+        # add functionality: top_spenders() to account for withdraws 
+        self._outgoing[account_id] += amount 
+
+        # successful withdrawals return string with unique payment_id
         self._transaction_number += 1 
         payment_id = "payment" + str(self._transaction_number)
-        self._payment_ids[account_id] = payment_id # add new entry 
+        
+        # add cashback 
+        cashback_owed = self._calculate_cashback(amount)
+        self._pending_cashback[payment_id] = (timestamp, account_id, cashback_owed) 
+        
+        # TODO: cashback must be processed before next transaction? 
+        # TODO: how to trigger cashback processing?
+
+        self._payment_ids[payment_id] = account_id # add new entry 
         print(f"Payment of {amount} to account {account_id} was successful | Payment ID: {payment_id}")
 
         return payment_id 
     
-
-        
-        
-
-
-
-        
