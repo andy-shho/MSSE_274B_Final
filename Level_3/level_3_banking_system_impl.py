@@ -176,6 +176,9 @@ class BankingSystemImpl:
     
 
     def get_payment_status(self, timestamp: int, account_id: str, payment: str) -> str | None:
+
+        self._process_cash_back(timestamp)
+
         account = self._find_account(account_id)
 
         # check: accounts exists 
